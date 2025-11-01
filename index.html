@@ -1,224 +1,625 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KeySpend — Create & Share Verification Keys</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; font-family:'Poppins',sans-serif; }
-    body {
-      background: radial-gradient(circle at top left, #140020, #000);
-      min-height:100vh; overflow-x:hidden; color:#f0f0f0;
-      transition: background 0.8s ease;
-    }
-    #background {
-      position:fixed; inset:0; z-index:-1;
-      background: radial-gradient(ellipse at top, #250045, #0a0017);
-      overflow:hidden;
-    }
-    #background::before {
-      content:''; position:absolute; width:200%; height:200%;
-      background:conic-gradient(from 0deg, #4f00ff, #9f00ff, #ff0080, #4f00ff);
-      animation: spin 30s linear infinite; opacity:0.08;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    header {
-      display:flex; justify-content:space-between; align-items:center;
-      padding:18px 40px; background:rgba(25,0,50,0.8); backdrop-filter:blur(10px);
-      border-bottom:1px solid rgba(255,255,255,0.08); position:sticky; top:0; z-index:20;
-    }
-    .logo {
-      display:flex; align-items:center; gap:10px; font-weight:700; font-size:1.4em;
-    }
-    .logo svg { width:26px; height:26px; stroke:#a86cff; }
-    button {
-      background:linear-gradient(135deg,#6a00ff,#9f46ff);
-      border:none; border-radius:8px; padding:10px 20px; color:white;
-      font-weight:600; cursor:pointer; transition:0.3s;
-    }
-    button:hover { transform:translateY(-2px); box-shadow:0 0 12px rgba(160,80,255,0.5); }
-    main { max-width:900px; margin:auto; padding:60px 20px; text-align:center; }
-    h2 {
-      font-size:2em; margin-bottom:16px;
-      background:linear-gradient(90deg,#b47aff,#ffccff);
-      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-    }
-    section { display:none; }
-    section.active { display:block; animation:fadeIn 0.6s ease; }
-    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
-    .card {
-      background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08);
-      border-radius:14px; padding:20px; text-align:left; backdrop-filter:blur(10px);
-      transition: all 0.3s ease;
-    }
-    .card:hover { background:rgba(255,255,255,0.07); transform:translateY(-3px); }
-    .key-grid {
-      display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
-      gap:20px; margin-top:30px;
-    }
-    input,textarea {
-      width:100%; padding:12px; border:none; border-radius:8px;
-      background:rgba(255,255,255,0.1); color:white; margin-bottom:10px;
-    }
-    ::placeholder { color:#ccc; }
-    input[readonly] { cursor:text; background:rgba(255,255,255,0.06); }
-    footer { text-align:center; padding:20px; color:#888; font-size:0.9em;
-      border-top:1px solid rgba(255,255,255,0.08);
-    }
-    .text-muted { color:#aaa; font-size:0.9em; }
-    .glow-btn {
-      background:linear-gradient(135deg,#ff007f,#9d00ff);
-    }
-    .glow-btn:hover { box-shadow:0 0 16px rgba(255,0,170,0.4); }
-    .icon {
-      stroke-width:1.7; vertical-align:middle; margin-right:6px;
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>KeySpend — Verification Links (No DB)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<!-- Lucide icons via CDN -->
+<script src="https://unpkg.com/lucide@0.257.0/dist/umd/lucide.js"></script>
+<style>
+  :root{
+    --bg:#071018;
+    --card:#0b1220;
+    --muted:#90a4b4;
+    --accent:#8b5cf6;
+    --accent2:#ffcc00;
+    --danger:#ff5252;
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:#e8f0f8;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial}
+  a{color:var(--accent2)}
+  .wrap{max-width:1000px;margin:28px auto;padding:18px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .logo{display:flex;align-items:center;gap:10px}
+  .logo .mark{width:44px;height:44px;border-radius:10px;background:linear-gradient(90deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:800;color:#071018}
+  h1{font-size:18px;margin:0}
+  .muted{color:var(--muted);font-size:13px}
+
+  .grid{display:grid;grid-template-columns:1fr 360px;gap:16px}
+  .card{background:var(--card);padding:16px;border-radius:var(--radius);box-shadow:0 8px 30px rgba(2,6,23,0.6)}
+  .profile-pic{width:88px;height:88px;border-radius:12px;overflow:hidden;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;font-weight:700}
+  .field{margin-bottom:12px}
+  label{display:block;color:var(--muted);font-size:13px;margin-bottom:6px}
+  input,select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit}
+  button{background:linear-gradient(90deg,var(--accent),var(--accent2));border:0;padding:10px 12px;border-radius:10px;color:#071018;font-weight:700;cursor:pointer}
+  button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+  .small{font-size:13px;color:var(--muted)}
+  .keys-list{display:flex;flex-direction:column;gap:10px}
+  .key-item{display:flex;justify-content:space-between;gap:12px;padding:10px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005))}
+  .link{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:360px}
+  .icon{vertical-align:middle;margin-right:6px}
+
+  /* create UI */
+  .create-wrap{display:flex;gap:14px}
+  .side{width:32%}
+  .main{flex:1}
+
+  /* Verify page */
+  .verify-wrap{max-width:780px;margin:24px auto;padding:18px;background:var(--card);border-radius:12px}
+  .progress{height:12px;background:rgba(255,255,255,0.03);border-radius:999px;overflow:hidden;margin:10px 0}
+  .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width .6s ease}
+
+  /* icons row */
+  .platforms{display:flex;gap:10px;align-items:center}
+  .platform{display:flex;gap:8px;align-items:center;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.02)}
+  .spinner{width:36px;height:36px;border-radius:50%;border:4px solid rgba(255,255,255,0.06);border-top-color:var(--accent2);animation:spin 1s linear infinite;display:inline-block}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* responsive */
+  @media (max-width:980px){.grid{grid-template-columns:1fr}.side{display:none}}
+</style>
 </head>
 <body>
-  <div id="background"></div>
-  <header>
-    <div class="logo">
-      <svg data-lucide="key" class="icon"></svg>
-      KeySpend
-    </div>
-    <button id="createKeyBtn">
-      <svg data-lucide="plus-circle" class="icon"></svg>
-      Create Key
-    </button>
-  </header>
-
-  <main>
-    <!-- Dashboard Section -->
-    <section id="dashboard" class="active">
-      <h2>Your Keys</h2>
-      <p class="text-muted">Manage, share and distribute verification keys.</p>
-      <div id="keyList" class="key-grid"></div>
-      <p id="noKeys" class="text-muted" style="margin-top:20px;">No keys yet. Create one above.</p>
-    </section>
-
-    <!-- Creator Section -->
-    <section id="creator">
-      <h2>Create a New Key</h2>
-      <input type="text" id="keyName" placeholder="Key name (e.g. Premium Access)" />
-      <textarea id="keyDesc" rows="3" placeholder="Description or requirements..."></textarea>
-      <button id="generateKey" class="glow-btn">
-        <svg data-lucide="wand" class="icon"></svg>
-        Generate Key
-      </button>
-    </section>
-
-    <!-- Public View Section -->
-    <section id="publicView">
-      <div class="card" style="max-width:500px;margin:auto;">
-        <h2 id="pubName"></h2>
-        <p id="pubDesc"></p>
-        <p class="text-muted" style="margin-top:10px;">Shared via KeySpend</p>
-        <button onclick="window.location='/'">Return Home</button>
+  <div class="wrap">
+    <header>
+      <div class="logo">
+        <div class="mark">KS</div>
+        <div>
+          <h1>KeySpend</h1>
+          <div class="muted">Create verification links — no server required</div>
+        </div>
       </div>
-    </section>
-  </main>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <button id="btn-create">Create Key</button>
+        <button id="btn-profile" class="ghost">Profile</button>
+      </div>
+    </header>
 
-  <footer>© 2025 KeySpend — Cloudless Key Verification Platform</footer>
+    <div class="grid">
+      <!-- main content -->
+      <div id="main" class="card">
+        <!-- dynamic content inserted here by JS -->
+      </div>
 
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-  <script>
-    lucide.createIcons();
+      <!-- sidebar -->
+      <aside class="card side">
+        <div style="display:flex;gap:10px;align-items:center">
+          <div id="sidebar-pfp" class="profile-pic">KS</div>
+          <div>
+            <div id="sidebar-username" style="font-weight:700">Not set</div>
+            <div id="sidebar-bday" class="small">—</div>
+          </div>
+        </div>
 
-    // Elements
-    const createKeyBtn = document.getElementById("createKeyBtn");
-    const dashboard = document.getElementById("dashboard");
-    const creator = document.getElementById("creator");
-    const publicView = document.getElementById("publicView");
-    const keyList = document.getElementById("keyList");
-    const noKeys = document.getElementById("noKeys");
-    const keyName = document.getElementById("keyName");
-    const keyDesc = document.getElementById("keyDesc");
-    const generateKey = document.getElementById("generateKey");
-    const pubName = document.getElementById("pubName");
-    const pubDesc = document.getElementById("pubDesc");
+        <hr style="margin:12px 0;border:0;height:1px;background:rgba(255,255,255,0.03)" />
 
-    // Utility functions
-    function randomId(len = 12) {
-      const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-      let id = "";
-      for (let i = 0; i < len; i++) {
-        id += chars[Math.floor(Math.random() * chars.length)];
-      }
-      return id;
-    }
-    function getKeys() {
-      return JSON.parse(localStorage.getItem("keys") || "[]");
-    }
-    function saveKeys(keys) {
-      localStorage.setItem("keys", JSON.stringify(keys));
-    }
-    function showSection(id) {
-      [dashboard, creator, publicView].forEach(s => s.classList.remove("active"));
-      document.getElementById(id).classList.add("active");
-    }
-    function renderKeys() {
-      const keys = getKeys();
-      keyList.innerHTML = "";
-      if (keys.length === 0) {
-        noKeys.style.display = "block";
-        return;
-      }
-      noKeys.style.display = "none";
-      keys.forEach(k => {
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `
-          <h3>${k.name}</h3>
-          <p class="text-muted">${k.desc || "No description"}</p>
-          <input readonly value="${location.origin}?key=${k.id}&n=${encodeURIComponent(k.name)}" />
-          <button style="margin-top:10px;background:#ff004c;color:white;" onclick="deleteKey('${k.id}')">
-            <svg data-lucide="trash-2" class="icon"></svg> Delete
-          </button>
-        `;
-        keyList.appendChild(card);
-      });
-      lucide.createIcons();
-    }
-    function deleteKey(id) {
-      const keys = getKeys().filter(k => k.id !== id);
-      saveKeys(keys);
-      renderKeys();
-    }
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="small">Your Keys</div>
+          <button id="btn-new" class="ghost">New</button>
+        </div>
+        <div id="keys-list" style="margin-top:12px" class="keys-list">
+          <div class="muted small">Nothing here yet</div>
+        </div>
+      </aside>
+    </div>
+  </div>
 
-    // Event handlers
-    createKeyBtn.onclick = () => {
-      showSection("creator");
+<script>
+/* ========= Utilities ========= */
+const doc = document;
+const API_ORIGIN = location.origin;
+lucide.createIcons && lucide.createIcons(); // ensure icons render if lucide loaded
+
+function q(sel){return doc.querySelector(sel)}
+function el(html){const d=document.createElement('div');d.innerHTML=html.trim();return d.firstElementChild}
+function uid(len=32){return crypto.getRandomValues(new Uint8Array(len)).reduce((s,b)=>s + b.toString(16).padStart(2,'0'),'')}
+
+/* local storage helpers */
+const LS = {
+  profileKey: 'ks_profile_v1',
+  keysKey: 'ks_keys_v1',
+  getProfile(){try{return JSON.parse(localStorage.getItem(this.profileKey)||'null')}catch(e){return null}},
+  saveProfile(p){localStorage.setItem(this.profileKey, JSON.stringify(p))},
+  getKeys(){try{return JSON.parse(localStorage.getItem(this.keysKey)||'[]')}catch(e){return []}},
+  saveKeys(k){localStorage.setItem(this.keysKey, JSON.stringify(k))}
+};
+
+/* ========= Routing / Init ========= */
+const path = location.pathname.replace(/\/+$/,''); // keep /checkpoint1/<id> paths
+if (path.startsWith('/checkpoint1/')) {
+  // show verify page
+  renderVerifyFromURL();
+} else {
+  // app UI
+  renderLanding();
+}
+
+/* ========= UI: Landing / Dashboard / Create / Profile ======== */
+
+function renderLanding(){
+  const main = q('#main');
+  main.innerHTML = '';
+  const profile = LS.getProfile();
+  const keys = LS.getKeys();
+
+  const header = el(`<div style="display:flex;justify-content:space-between;align-items:center">
+    <div><h2 style="margin:0">Dashboard</h2><div class="muted">Create and manage verification keys</div></div>
+    <div style="display:flex;gap:8px">
+      <button id="createFromDash">Create key</button>
+      <button id="exportKeys" class="ghost">Export</button>
+    </div>
+  </div>`);
+
+  const keysWrap = el(`<div style="margin-top:18px">
+    <h3 style="margin-bottom:8px">Your keys</h3>
+    <div id="dash-keys"></div>
+  </div>`);
+
+  main.appendChild(header);
+  main.appendChild(keysWrap);
+
+  q('#createFromDash').onclick = ()=> showCreateKey();
+  q('#exportKeys').onclick = ()=> {
+    const data = JSON.stringify(LS.getKeys(),null,2);
+    const blob = new Blob([data],{type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download='keyspend-keys.json'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  renderSidebarProfile();
+  renderKeysList('#dash-keys');
+}
+
+function renderSidebarProfile(){
+  const p = LS.getProfile();
+  if(!p){ q('#sidebar-username').innerText='Not set'; q('#sidebar-pfp').innerText='KS'; q('#sidebar-bday').innerText='—'; return;}
+  q('#sidebar-username').innerText = p.username || 'Creator';
+  q('#sidebar-bday').innerText = p.birthday || '—';
+  if(p.pfpDataUrl) q('#sidebar-pfp').innerHTML = `<img src="${p.pfpDataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:12px" />`;
+  else q('#sidebar-pfp').innerText = (p.username||'KS').slice(0,2).toUpperCase();
+}
+
+function renderKeysList(containerSelector){
+  const wrap = q(containerSelector);
+  wrap.innerHTML = '';
+  const keys = LS.getKeys();
+  if(keys.length===0){ wrap.innerHTML = '<div class="muted small">No keys yet</div>'; q('#keys-list').innerHTML = '<div class="muted small">Nothing here yet</div>'; return;}
+  keys.forEach(k=>{
+    const node = el(`<div class="key-item">
+      <div style="display:flex;flex-direction:column">
+        <div style="font-weight:700">${escapeHtml(k.name)}</div>
+        <div class="link">${escapeHtml(k.publicLink)}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="ghost" data-open="${k.publicLink}">Open</button>
+        <button class="ghost" data-copy="${k.publicLink}">Copy</button>
+      </div>
+    </div>`);
+    node.querySelector('[data-open]')?.addEventListener('click', ()=> window.open(k.publicLink,'_blank'));
+    node.querySelector('[data-copy]')?.addEventListener('click', ()=> { navigator.clipboard.writeText(k.publicLink); alert('Link copied'); });
+    wrap.appendChild(node);
+  });
+  // sidebar list
+  const sideWrap = q('#keys-list'); sideWrap.innerHTML='';
+  keys.forEach(k=> sideWrap.appendChild(el(`<div class="small link" style="padding:8px 0">${escapeHtml(k.name)}<div class="muted small">${truncate(k.publicLink,36)}</div></div>`)));
+}
+
+/* ========= Create Key UI ========= */
+q('#btn-create').onclick = showCreateKey;
+q('#btn-new').onclick = showCreateKey;
+q('#btn-profile').onclick = showProfileEditor;
+
+function showCreateKey(){
+  const main = q('#main'); main.innerHTML = '';
+  const profile = LS.getProfile();
+  if(!profile){ alert('Please set up your profile first (Profile button).'); showProfileEditor(); return; }
+
+  const html = el(`<div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><h2 style="margin:0">Create New Key</h2><div class="muted">Configure verify steps & completion action</div></div>
+      <div><button id="genLinkBtn">Generate Link</button></div>
+    </div>
+
+    <div style="margin-top:14px" class="create-wrap">
+      <div class="side card">
+        <div style="font-weight:700">Summary</div>
+        <div class="small muted" style="margin-top:8px">This panel previews your key settings and creator profile shown to users.</div>
+        <div style="margin-top:12px">
+          <div style="display:flex;gap:8px;align-items:center"><div style="width:44px;height:44px;border-radius:8px;background:rgba(255,255,255,0.03);overflow:hidden">${profile.pfpDataUrl ? `<img src="${profile.pfpDataUrl}" style="width:100%;height:100%;object-fit:cover"/>` : `<div style="padding:8px;color:var(--muted)">${escapeHtml((profile.username||'KS').slice(0,2).toUpperCase())}</div>`}</div><div><div style="font-weight:700">${escapeHtml(profile.username)}</div><div class="small muted">${escapeHtml(profile.birthday||'')}</div></div></div>
+        </div>
+        <div id="preview" style="margin-top:12px"></div>
+      </div>
+
+      <div class="main card">
+        <div class="field"><label>Key name</label><input id="ck-name" placeholder="Key name"></div>
+        <div class="field"><label>Number of checkpoints (1-10)</label><input id="ck-count" type="number" min="1" max="10" value="3"></div>
+        <div class="field"><label>Wait time before first click (seconds)</label><input id="ck-wait" type="number" min="0" max="120" value="15"></div>
+        <div class="field"><label>Pick platforms for each checkpoint (will repeat if less than count)</label>
+          <select id="ck-platforms" multiple size="4" style="height:120px">
+            <option value="youtube">YouTube (subscribe)</option>
+            <option value="tiktok">TikTok (follow)</option>
+            <option value="twitter">Twitter (like)</option>
+            <option value="manual">Manual proof (post token)</option>
+          </select>
+          <div class="small muted">Select one or multiple platforms — verification will cycle through choices per checkpoint.</div>
+        </div>
+
+        <hr style="border:0;height:1px;background:rgba(255,255,255,0.03);margin:12px 0" />
+
+        <div class="field"><label>Completion action</label>
+          <select id="ck-action">
+            <option value="open">Open URL (redirect)</option>
+            <option value="download">Download file</option>
+          </select>
+          <input id="ck-action-val" placeholder="Target URL or file link (e.g. https://example.com/file.zip)" style="margin-top:8px"/>
+        </div>
+
+        <div style="display:flex;gap:8px">
+          <button id="genLink">Generate Link</button>
+          <button id="cancelCreate" class="ghost">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>`);
+
+  main.appendChild(html);
+
+  // preview update
+  const preview = q('#preview');
+  function updatePreview(){
+    const name = q('#ck-name').value || '(not set)';
+    const count = Number(q('#ck-count').value) || 1;
+    const wait = Number(q('#ck-wait').value) || 15;
+    preview.innerHTML = `<div style="font-weight:700">${escapeHtml(name)}</div><div class="small muted">Checkpoints: ${count} • Wait: ${wait}s</div>`;
+  }
+  q('#ck-name').addEventListener('input', updatePreview);
+  q('#ck-count').addEventListener('input', updatePreview);
+  q('#ck-wait').addEventListener('input', updatePreview);
+  updatePreview();
+
+  q('#cancelCreate').onclick = renderLanding;
+
+  // generate link logic (self-contained link with encoded payload in fragment)
+  q('#genLink').onclick = q('#genLinkBtn').onclick = ()=> {
+    const name = q('#ck-name').value.trim();
+    if(!name){ alert('Key name required'); return; }
+    const count = Math.max(1, Math.min(10, Number(q('#ck-count').value) || 1));
+    const wait = Math.max(0, Number(q('#ck-wait').value) || 15);
+    const platforms = Array.from(q('#ck-platforms').selectedOptions).map(o=>o.value);
+    if(platforms.length===0) platforms.push('manual');
+    const action = q('#ck-action').value;
+    const actionVal = q('#ck-action-val').value.trim();
+
+    // build payload
+    const profile = LS.getProfile();
+    const payload = {
+      creator: { username: profile.username, pfp: profile.pfpDataUrl || null },
+      name, count, wait, platforms, action: { type: action, value: actionVal },
+      createdAt: Date.now()
     };
-    generateKey.onclick = () => {
-      const name = keyName.value.trim();
-      if (!name) {
-        alert("Please enter a key name");
-        return;
-      }
-      const desc = keyDesc.value.trim();
-      const id = randomId();
-      const keys = getKeys();
-      keys.push({ id, name, desc, created: Date.now() });
-      saveKeys(keys);
-      keyName.value = "";
-      keyDesc.value = "";
-      showSection("dashboard");
-      renderKeys();
-    };
 
-    // Public view if link params
-    const params = new URLSearchParams(location.search);
-    if (params.has("key")) {
-      showSection("publicView");
-      const name = decodeURIComponent(params.get("n") || "");
-      pubName.textContent = name || "Private Key";
-      pubDesc.textContent = "Verification Key ID: " + params.get("key");
-      document.querySelector("header").style.display = "none";
+    // encode as base64 (URL-safe) and include in fragment so link is self-contained
+    const json = JSON.stringify(payload);
+    const b64 = btoa(unescape(encodeURIComponent(json))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+    const longId = uid(16); // 32 hex chars
+    const publicLink = `${API_ORIGIN}/checkpoint1/${longId}#${b64}`;
+
+    // store creator's copy locally (optional)
+    const keys = LS.getKeys();
+    keys.push({ id: longId, name, publicLink, payload });
+    LS.saveKeys(keys);
+
+    // show result
+    prompt('Public verification link (share this):', publicLink);
+    renderLanding();
+  };
+}
+
+/* ========= Profile editor ========= */
+function showProfileEditor(){
+  const main = q('#main'); main.innerHTML = '';
+  const p = LS.getProfile() || { username:'', birthday:'', pfpDataUrl:null };
+
+  const html = el(`<div>
+    <h2>Profile</h2>
+    <div class="card">
+      <div class="field"><label>Username</label><input id="pf-name" value="${escapeHtml(p.username||'')}" placeholder="Your display name"></div>
+      <div class="field"><label>Birthday</label><input id="pf-bday" type="date" value="${escapeHtml(p.birthday||'')}"></div>
+      <div class="field"><label>Profile picture (optional)</label><input id="pf-file" type="file" accept="image/*"></div>
+      <div style="display:flex;gap:8px"><button id="pf-save">Save</button><button id="pf-cancel" class="ghost">Cancel</button></div>
+    </div>
+  </div>`);
+  main.appendChild(html);
+
+  q('#pf-cancel').onclick = renderLanding;
+  q('#pf-save').onclick = async ()=>{
+    const name = q('#pf-name').value.trim() || 'Creator';
+    const bday = q('#pf-bday').value || '';
+    let dataUrl = p.pfpDataUrl || null;
+    const f = q('#pf-file').files[0];
+    if(f){
+      dataUrl = await readFileAsDataURL(f);
+    }
+    LS.saveProfile({ username:name, birthday:bday, pfpDataUrl:dataUrl });
+    alert('Profile saved');
+    renderLanding();
+  };
+}
+
+/* ========= Verify flow (reads fragment data) ========= */
+
+async function renderVerifyFromURL(){
+  // extract fragment base64 payload
+  const frag = location.hash.slice(1);
+  if(!frag){ renderError('Invalid verification link: payload missing'); return; }
+  // base64 URL-safe -> standard
+  const b64 = frag.replace(/-/g,'+').replace(/_/g,'/');
+  let json;
+  try{
+    const str = decodeURIComponent(escape(atob(b64)));
+    json = JSON.parse(str);
+  }catch(e){
+    renderError('Invalid or corrupted payload');
+    return;
+  }
+  // render verify UI
+  renderVerifyUI(json);
+}
+
+function renderError(msg){
+  const root = doc.body;
+  root.innerHTML = `<div style="height:100vh;display:flex;align-items:center;justify-content:center;"><div class="card" style="max-width:680px;text-align:center"><h2 style="margin:0">Verification error</h2><p class="muted">${escapeHtml(msg)}</p><div style="height:12px"></div><a href="/" class="small">Return home</a></div></div>`;
+}
+
+function renderVerifyUI(payload){
+  // payload: { creator:{username,pfp}, name, count, wait, platforms[], action:{type,value} }
+  const main = doc.createElement('div'); main.className='verify-wrap';
+  main.innerHTML = `
+    <div style="display:flex;gap:12px;align-items:center;justify-content:space-between">
+      <div style="display:flex;gap:12px;align-items:center">
+        <div style="width:64px;height:64px;border-radius:12px;background:rgba(255,255,255,0.03);overflow:hidden" id="vp-pfp"></div>
+        <div>
+          <div style="font-weight:700" id="vp-un">${escapeHtml(payload.creator?.username||'Creator')}</div>
+          <div class="small muted">verifying: ${escapeHtml(payload.name)}</div>
+        </div>
+      </div>
+      <div id="vp-loading" class="small muted">Loading… <span class="spinner" style="display:inline-block;margin-left:8px"></span></div>
+    </div>
+
+    <hr style="margin:12px 0;border:0;height:1px;background:rgba(255,255,255,0.03)"/>
+
+    <div id="vp-body">
+      <div class="small muted">Step 0 — Wait ${payload.wait} seconds</div>
+      <div style="height:8px"></div>
+      <div id="vp-countdown" class="small muted">Preparing…</div>
+      <div style="height:10px"></div>
+      <div id="vp-ctrl"></div>
+      <div style="height:16px"></div>
+      <div class="progress"><i id="vp-prog"></i></div>
+    </div>
+  `;
+  doc.body.innerHTML = ''; // replace full page
+  doc.body.appendChild(main);
+
+  // pfp
+  if(payload.creator?.pfp) doc.getElementById('vp-pfp').innerHTML = `<img src="${payload.creator.pfp}" style="width:100%;height:100%;object-fit:cover"/>`;
+  else doc.getElementById('vp-pfp').innerText = (payload.creator?.username||'KS').slice(0,2).toUpperCase();
+
+  // step state
+  let step = 0;
+  const totalSteps = Number(payload.count) || 1;
+  const progEl = doc.getElementById('vp-prog');
+
+  // initial wait countdown
+  const waitSec = Number(payload.wait) || 15;
+  const start = Date.now();
+  const end = start + waitSec*1000;
+  const cd = doc.getElementById('vp-countdown');
+  const ctrl = doc.getElementById('vp-ctrl');
+
+  const tick = setInterval(()=> {
+    const rem = Math.max(0, Math.ceil((end - Date.now())/1000));
+    cd.innerText = `Remaining: ${rem}s`;
+    if(rem<=0){
+      clearInterval(tick);
+      cd.innerText = `Ready — click to continue`;
+      ctrl.innerHTML = `<button id="vp-click" class="btn">I finished waiting — continue</button>`;
+      doc.getElementById('vp-click').onclick = async ()=>{
+        step = 1;
+        updateProgress();
+        await runCheckpoint(step, payload, ctrl, progEl, totalSteps);
+      };
+    }
+  }, 250);
+
+  function updateProgress(){
+    const pct = Math.floor(((step-1)/totalSteps) * 100);
+    progEl.style.width = pct + '%';
+  }
+}
+
+/* Runs a single checkpoint (simulated verification).
+   - platform behavior is mocked (client-only)
+   - each checkpoint "verifies" over ~20s (as requested)
+*/
+async function runCheckpoint(stepIndex, payload, ctrlEl, progEl, totalSteps){
+  ctrlEl.innerHTML = '';
+  const platforms = payload.platforms && payload.platforms.length ? payload.platforms : ['manual'];
+  const platform = platforms[(stepIndex-1) % platforms.length];
+  // show UI for step
+  const platformName = platformLabel(platform);
+  ctrlEl.innerHTML = `<div class="small muted">Checkpoint ${stepIndex} of ${totalSteps}: ${platformName}</div>
+    <div style="height:10px"></div>
+    <div class="platforms" id="vp-platforms-row"></div>
+    <div style="height:10px"></div>
+    <div id="vp-action"><button id="vp-verify" class="btn">Start verification</button></div>`;
+
+  // icons row
+  const row = doc.getElementById('vp-platforms-row');
+  const icons = platformIconRow(platform);
+  icons.forEach(i=> row.appendChild(i));
+
+  // verification action
+  doc.getElementById('vp-verify').onclick = async ()=>{
+    doc.getElementById('vp-action').innerHTML = `<div class="small muted">Verifying… this may take ~20s <span class="spinner" style="margin-left:8px"></span></div>`;
+    // simulate network/provider check latency
+    await sleep(2000 + Math.random()*8000); // initial delay
+    // simulate provider verification - take ~12-18s as requested (total ~20s)
+    const verifyDuration = 12000 + Math.random()*8000;
+    const start = Date.now();
+    // animate a progress inside verify button area
+    const prog = document.createElement('div');
+    prog.style.marginTop='10px';
+    prog.innerHTML = `<div class="progress"><i style="width:0%" id="vp-step-prog"></i></div>`;
+    doc.getElementById('vp-action').appendChild(prog);
+    const stepProgEl = doc.getElementById('vp-step-prog');
+    // update progress visually
+    const iv = setInterval(()=>{
+      const elapsed = Date.now()-start;
+      const pct = Math.min(100, Math.floor((elapsed/verifyDuration)*100));
+      stepProgEl.style.width = pct + '%';
+    }, 300);
+    await sleep(verifyDuration);
+    clearInterval(iv);
+    // assume success (client-side)
+    progEl.style.width = Math.floor((stepIndex/totalSteps)*100) + '%';
+    // move to next or finish
+    if(stepIndex < totalSteps){
+      // show continue button
+      doc.getElementById('vp-action').innerHTML = `<div class="small" style="color:var(--accent2)">Step verified ✓</div><div style="height:8px"></div><button id="vp-next" class="btn">Continue to next step</button>`;
+      doc.getElementById('vp-next').onclick = async ()=>{
+        await runCheckpoint(stepIndex+1, payload, ctrlEl, progEl, totalSteps);
+      };
     } else {
-      renderKeys();
+      // finished
+      doc.getElementById('vp-action').innerHTML = `<div class="small" style="color:var(--accent2);font-weight:700">All steps complete ✓</div><div style="height:10px"></div>`;
+      // show completion action
+      if(payload.action?.type === 'open' && payload.action.value){
+        const openLink = payload.action.value;
+        doc.getElementById('vp-action').innerHTML += `<button id="vp-open" class="btn">Open Link</button>`;
+        doc.getElementById('vp-open').onclick = ()=> window.open(openLink,'_blank');
+      } else if(payload.action?.type === 'download' && payload.action.value){
+        // show warning before download
+        doc.getElementById('vp-action').innerHTML += `<div class="small muted" style="margin-bottom:8px;color:var(--danger)"><strong>Warning:</strong> We are not responsible for what the file contains. Only download if you trust the creator.</div><button id="vp-dl" class="btn">Download file</button>`;
+        doc.getElementById('vp-dl').onclick = ()=> {
+          const confirmed = confirm('Download file? We are not responsible for file contents. Continue?');
+          if(!confirmed) return;
+          window.open(payload.action.value,'_blank');
+        };
+      } else {
+        doc.getElementById('vp-action').innerHTML += `<div class="small muted">No completion action set by creator.</div>`;
+      }
+      // mark as completed in session (local)
+      try{
+        sessionStorage.setItem('ks_completed_' + (payload.createdAt || 'x'), '1');
+      }catch(e){}
     }
-  </script>
+  };
+}
+
+/* ========= Helpers ========= */
+function platformLabel(key){
+  if(key==='youtube') return 'YouTube — subscribe';
+  if(key==='tiktok') return 'TikTok — follow';
+  if(key==='twitter') return 'Twitter — like';
+  return 'Manual proof (post token)';
+}
+function platformIconRow(key){
+  const arr = [];
+  if(key==='youtube') arr.push(makeIcon('youtube', 'YouTube'));
+  if(key==='tiktok') arr.push(makeIcon('tiktok', 'TikTok'));
+  if(key==='twitter') arr.push(makeIcon('twitter', 'Twitter'));
+  if(key==='manual') arr.push(makeIcon('hash', 'Manual'));
+  return arr;
+}
+function makeIcon(name,title){
+  const wrapper = el(`<div class="platform" title="${title}"></div>`);
+  // lucide supports many icons; for brand icons, use simple SVG glyphs or text fallback
+  let svg;
+  try{
+    svg = lucide.icons[name] ? lucide.icons[name].toSvg() : lucide.icons['zap'].toSvg();
+  }catch(e){
+    svg = lucide.icons['zap'].toSvg();
+  }
+  wrapper.innerHTML = `<span style="width:20px;display:inline-block">${svg}</span><div style="font-size:13px">${title}</div>`;
+  return wrapper;
+}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function readFileAsDataURL(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(file)})}
+function escapeHtml(s){return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')}
+function truncate(s,n){return s.length>n? s.slice(0,n-2)+'…':s}
+
+/* ========= Small bootstrapping ========= */
+function renderLanding(){ renderLandingUI(); renderSidebarProfile(); renderKeysList('#dash-keys'); }
+function renderLandingUI(){
+  const main = q('#main'); main.innerHTML = '';
+  main.appendChild(el(`<div style="display:flex;justify-content:space-between;align-items:center">
+    <div><h2 style="margin:0">Dashboard</h2><div class="muted">Manage your verification keys</div></div>
+    <div style="display:flex;gap:8px"><button id="createInline">Create key</button></div>
+  </div>`));
+  main.appendChild(el(`<div style="margin-top:14px" class="card"><div id="dash-keys"></div></div>`));
+  q('#createInline').onclick = showCreateKey;
+  // render keys list in dash
+  const keys = LS.getKeys();
+  const box = q('#dash-keys'); box.innerHTML = '';
+  if(keys.length===0) box.innerHTML = '<div class="muted">No keys yet — click Create key to start</div>';
+  keys.forEach(k=>{
+    const node = el(`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px dashed rgba(255,255,255,0.02)">
+      <div><div style="font-weight:700">${escapeHtml(k.name)}</div><div class="small muted" style="margin-top:6px">${truncate(k.publicLink,80)}</div></div>
+      <div style="display:flex;gap:8px">
+        <button class="ghost" data-open="${k.publicLink}">Open</button>
+        <button class="ghost" data-copy="${k.publicLink}">Copy</button>
+      </div>
+    </div>`);
+    node.querySelector('[data-open]').addEventListener('click', ()=> window.open(k.publicLink,'_blank'));
+    node.querySelector('[data-copy]').addEventListener('click', ()=> { navigator.clipboard.writeText(k.publicLink); alert('Copied'); });
+    box.appendChild(node);
+  });
+}
+
+/* Escape route if initial page load was not a checkpoint path */
+if(!location.pathname.startsWith('/checkpoint1/')){
+  // wire up profile button
+  q('#btn-profile').onclick = showProfileEditor;
+  // initial sidebar render
+  renderSidebarProfile();
+  renderKeysList('#keys-list');
+}
+
+/* ========= Profile editor (embedded function for direct call) ========= */
+async function showProfileEditor(){
+  const main = q('#main'); main.innerHTML = '';
+  const p = LS.getProfile() || { username:'', birthday:'', pfpDataUrl:null };
+  const node = el(`<div><h2>Profile</h2><div class="card">
+    <div class="field"><label>Username</label><input id="pf-name" value="${escapeHtml(p.username||'')}"></div>
+    <div class="field"><label>Birthday</label><input id="pf-bday" type="date" value="${escapeHtml(p.birthday||'')}"></div>
+    <div class="field"><label>Profile picture</label><input id="pf-file" type="file" accept="image/*"></div>
+    <div style="display:flex;gap:8px"><button id="pf-save">Save</button><button id="pf-cancel" class="ghost">Cancel</button></div>
+  </div></div>`);
+  main.appendChild(node);
+  q('#pf-cancel').onclick = renderLanding;
+  q('#pf-save').onclick = async ()=>{
+    const name = q('#pf-name').value.trim() || 'Creator';
+    const bday = q('#pf-bday').value || '';
+    let dataUrl = p.pfpDataUrl || null;
+    const f = q('#pf-file').files[0];
+    if(f) dataUrl = await readFileAsDataURL(f);
+    LS.saveProfile({ username:name, birthday:bday, pfpDataUrl:dataUrl });
+    alert('Saved profile');
+    renderLanding();
+    renderSidebarProfile();
+  };
+}
+
+/* simple escape helper for setTimeout use */
+function escapeHtmlInline(s){ return escapeHtml(s) }
+
+/* expose deleteKey globally for buttons (safer binding) */
+window.deleteKey = deleteKey;
+
+</script>
 </body>
 </html>
